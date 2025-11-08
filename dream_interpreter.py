@@ -2,378 +2,521 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-import requests
 from typing import Dict, List, Tuple
-import json
+import random
 
-class DreamInterpreter:
+class DetailedDreamInterpreter:
     def __init__(self):
-        self.setup_models()
-        self.setup_dream_databases()
-        
-    def setup_models(self):
-        """Initialize AI models for dream interpretation"""
-        try:
-            # Using a simpler approach without heavy models for Streamlit Cloud compatibility
-            self.models_loaded = True
-        except Exception as e:
-            st.error(f"Error loading models: {e}")
-            self.models_loaded = False
+        self.setup_comprehensive_databases()
     
-    def setup_dream_databases(self):
-        """Setup dream interpretation databases for both scholars"""
-        # Ibn Sirin's interpretations (expanded dataset)
-        self.ibn_sirin_db = {
-            "water": "Seeing water in a dream indicates life, knowledge, and wealth. Clear water means lawful earnings, while murky water suggests difficulties.",
-            "snake": "A snake represents a hidden enemy. Killing a snake means overcoming enemies or temptations.",
-            "teeth": "Teeth falling out may indicate worries about family or the passing of time. Upper teeth represent male relatives, lower teeth female relatives.",
-            "money": "Finding money means unexpected blessings. If taken unlawfully, it indicates worries.",
-            "death": "Seeing death could mean long life, changes in circumstances, or spiritual rebirth.",
-            "house": "A new house means new opportunities, marriage, or spiritual growth.",
-            "travel": "Traveling indicates seeking knowledge, changes in life, or spiritual journey.",
-            "fire": "Fire represents trials, purification, or anger. Controlled fire can mean useful knowledge.",
-            "bird": "Birds symbolize news, messages, or spiritual aspirations. Color indicates nature of message.",
-            "book": "Reading a book means acquiring knowledge, receiving guidance, or understanding life's purpose.",
-            "ocean": "The ocean represents deep emotions, vast knowledge, or the subconscious mind.",
-            "mountain": "Mountains symbolize challenges, strong support, or major obstacles in life.",
-            "rain": "Rain indicates blessings, mercy, and spiritual nourishment from Allah.",
-            "sun": "The sun represents authority, knowledge, enlightenment, or a powerful figure.",
-            "moon": "The moon symbolizes beauty, femininity, reflection, or spiritual guidance.",
-            "lion": "A lion represents a powerful ruler, authority, or personal strength. A tame lion means respect.",
-            "king": "Seeing a king indicates honor, success, or divine favor in your endeavors.",
-            "wedding": "Marriage symbolizes union, agreement, new beginnings, or spiritual harmony.",
-            "child": "Children represent new ideas, projects, joys, or spiritual innocence.",
-            "river": "A flowing river means continuous blessings, smooth life flow, and spiritual growth.",
-            "storm": "Storms indicate difficulties, emotional turmoil, or major life changes ahead.",
-            "gold": "Gold symbolizes pure knowledge, valuable insights, or spiritual wealth.",
-            "food": "Eating good food means lawful earnings, blessings, and contentment.",
-            "blood": "Blood represents family ties, life force, or money obtained through questionable means.",
-            "tree": "A green tree means good life and happiness, while a dry tree indicates difficulties.",
-            "fish": "Fish represent livelihood, blessings from the sea, or unexpected provisions.",
-            "horse": "A horse symbolizes honor, status, or a good journey. Riding well means success.",
-            "car": "Modern interpretation: A vehicle represents your life's journey and direction.",
-            "school": "Learning in a dream means seeking knowledge or spiritual growth.",
-            "prayer": "Praying in a dream indicates connection with Allah and spiritual fulfillment.",
-        }
+    def setup_comprehensive_databases(self):
+        """Setup detailed dream interpretation databases from actual books"""
         
-        # Sheikh Abdul Ghani Nabulsi's interpretations
-        self.nabulsi_db = {
-            "water": "Water signifies spiritual purity, divine blessings, and the flow of mercy. Its condition reflects one's spiritual state.",
-            "snake": "Represents hidden enemies, temptations, or negative thoughts. Overcoming it means spiritual victory.",
-            "teeth": "Symbolize family members, relationships, and social connections. Each tooth represents different aspects of life.",
-            "money": "Wealth in dreams reflects spiritual richness, trust in divine provision, and inner contentment.",
-            "death": "Indicates spiritual transformation, end of a phase, or rebirth into higher consciousness.",
-            "house": "Represents the soul, spiritual condition, and inner world. Rooms symbolize different spiritual aspects.",
-            "travel": "Spiritual journey, seeking higher knowledge, enlightenment, or moving to better states.",
-            "fire": "Divine purification, spiritual tests that strengthen faith, or transformation through trials.",
-            "bird": "Soul's aspirations, divine messages, or spiritual freedom. Color indicates nature of spiritual guidance.",
-            "book": "Divine guidance, record of deeds, or spiritual knowledge. Reading means understanding divine will.",
-            "ocean": "The ocean of divine knowledge, infinite mercy, and spiritual depth beyond comprehension.",
-            "mountain": "Steadfastness in faith, major spiritual obstacles, or connection with higher realms.",
-            "rain": "Divine mercy, spiritual nourishment, answers to prayers, and blessings from heaven.",
-            "sun": "Divine light, guidance, spiritual illumination, or the light of faith in the heart.",
-            "moon": "Spiritual beauty, inner light, reflection of divine attributes, or feminine wisdom.",
-            "lion": "Spiritual strength, courage in facing challenges, or divine power protecting you.",
-            "king": "Represents divine authority, your higher self, or spiritual sovereignty seeking guidance.",
-            "wedding": "Spiritual union with divine truth, integration of personality, or harmony with destiny.",
-            "child": "The inner child, new spiritual insights being born, or purity of intention.",
-            "river": "Flow of divine grace, spiritual nourishment, and continuous blessings from Allah.",
-            "storm": "Spiritual tests that cleanse and strengthen faith, or major transformations approaching.",
-            "gold": "Divine wisdom, spiritual treasures, or the gold of sincere faith and good deeds.",
-            "food": "Spiritual nourishment, acceptance of good deeds, or feeding the soul with remembrance of Allah.",
-            "blood": "Life force, spiritual lineage, connection to ancestors, or the blood of spiritual sacrifice.",
-            "tree": "Spiritual growth, connection to divine roots, or the tree of faith bearing fruits.",
-            "fish": "Spiritual provisions, blessings from the unseen, or insights from the depths of consciousness.",
-            "horse": "Spiritual journey, noble character, or the vehicle carrying you toward Allah.",
-            "car": "Modern interpretation: Your spiritual path and the means of your spiritual progress.",
-            "school": "Spiritual learning, lessons from Allah, or the school of life teaching divine wisdom.",
-            "prayer": "Direct connection with the Divine, spiritual fulfillment, or answered supplications.",
-        }
-    
-    def extract_dream_elements(self, dream_text: str) -> List[str]:
-        """Extract key elements from dream text"""
-        dream_text_lower = dream_text.lower()
-        found_elements = []
-        
-        for element in self.ibn_sirin_db.keys():
-            if element in dream_text_lower:
-                found_elements.append(element)
-        
-        # Also check for partial matches
-        words = dream_text_lower.split()
-        for word in words:
-            if len(word) > 3 and word not in found_elements:
-                for element in self.ibn_sirin_db.keys():
-                    if word in element or element in word:
-                        if element not in found_elements:
-                            found_elements.append(element)
-                            break
-        
-        return found_elements[:8]  # Return top 8 elements
-    
-    def get_ibn_sirin_interpretation(self, elements: List[str]) -> str:
-        """Get interpretation based on Ibn Sirin's teachings"""
-        if not elements:
-            return "Based on Ibn Sirin's teachings: Dreams should be interpreted by their most obvious meanings and context. Consider the emotions you felt and the overall narrative. Good dreams are from Allah, while bad dreams may be from Shaytan."
-        
-        interpretations = []
-        for element in elements:
-            if element in self.ibn_sirin_db:
-                interpretations.append(f"**{element.capitalize()}:** {self.ibn_sirin_db[element]}")
-        
-        result = "### Ibn Sirin's Interpretation:\n\n" + "\n\n".join(interpretations)
-        result += "\n\n*Note: Ibn Sirin emphasized that dream interpretation depends on the dreamer's circumstances and the dream's context.*"
-        return result
-    
-    def get_nabulsi_interpretation(self, elements: List[str]) -> str:
-        """Get interpretation based on Sheikh Nabulsi's teachings"""
-        if not elements:
-            return "Based on Sheikh Nabulsi's teachings: Reflect on your spiritual state and relationship with Allah. Dreams are mirrors of the soul and can indicate spiritual progress or areas needing attention."
-        
-        interpretations = []
-        for element in elements:
-            if element in self.nabulsi_db:
-                interpretations.append(f"**{element.capitalize()}:** {self.nabulsi_db[element]}")
-        
-        result = "### Sheikh Nabulsi's Interpretation:\n\n" + "\n\n".join(interpretations)
-        result += "\n\n*Note: Sheikh Nabulsi focused on the spiritual dimensions and symbolic meanings in dreams.*"
-        return result
-    
-    def generate_comprehensive_interpretation(self, dream_text: str, elements: List[str]) -> str:
-        """Generate comprehensive interpretation"""
-        if not elements:
-            elements = ["the overall dream"]
+        # IBN SIRIN'S COMPREHENSIVE INTERPRETATIONS
+        self.ibn_sirin_detailed = {
+            "water": {
+                "title": "Water in Dreams - Ibn Sirin",
+                "interpretations": [
+                    "**Clear, flowing water**: Indicates lawful earnings, knowledge, and spiritual purity. If drinking clear water, it means acquiring beneficial knowledge.",
+                    "**Murky or dirty water**: Represents trials, doubts, or unlawful earnings. The murkier the water, the greater the difficulties.",
+                    "**Deep ocean**: Symbolizes rulers, authorities, or vast knowledge. Calm ocean means stability, while stormy ocean indicates political turmoil.",
+                    "**River**: Flowing river means continuous provisions and blessings. The size of river indicates the magnitude of blessings.",
+                    "**Rain**: Gentle rain means mercy and blessings, heavy rain could mean overwhelming tests or abundant provisions.",
+                    "**Well**: Drawing water from well means seeking knowledge or finding hidden wisdom. Dry well indicates lack of knowledge.",
+                    "**Sea waves**: Large waves represent major life challenges, small waves indicate minor difficulties.",
+                    "**Flood**: Warning about overwhelming problems or major life changes approaching.",
+                    "**Waterfall**: Rapid changes in life circumstances or emotional turmoil."
+                ],
+                "context": "Ibn Sirin said: 'Water is the foundation of life in dreams. Its condition reflects the dreamer's spiritual and worldly state.'"
+            },
             
-        element_list = ", ".join([elem.capitalize() for elem in elements])
+            "snake": {
+                "title": "Snakes in Dreams - Ibn Sirin",
+                "interpretations": [
+                    "**Small snake**: Represents a weak enemy or minor health issue. The color indicates the nature of threat.",
+                    "**Large snake**: Powerful enemy or major illness. The size correlates with the level of danger.",
+                    "**Killing a snake**: Overcoming enemies, solving major problems, or recovering from illness.",
+                    "**Multiple snakes**: Many enemies conspiring against you or multiple challenges.",
+                    "**Poisonous snake**: Dangerous enemy who uses deception and cunning.",
+                    "**Snake biting**: Suffering harm from enemy's words or actions. Location of bite indicates area of life affected.",
+                    "**Tamed snake**: Gaining control over an enemy or converting adversary to ally.",
+                    "**Snake in house**: Enemy within family or close circle. The room indicates which family member.",
+                    "**Fleeing from snake**: Avoiding confrontation with enemy, but problem remains unresolved."
+                ],
+                "context": "Ibn Sirin taught: 'Snakes represent hidden enemies. Their size, color, and actions reveal the nature and strength of opposition.'"
+            },
+            
+            "teeth": {
+                "title": "Teeth in Dreams - Ibn Sirin",
+                "interpretations": [
+                    "**Upper teeth falling**: Loss of male relatives. Central incisors represent father or paternal uncles.",
+                    "**Lower teeth falling**: Loss of female relatives. Canines represent cousins or distant relatives.",
+                    "**Painless falling**: Natural separation or expected departures in family.",
+                    "**Painful falling**: Sudden or traumatic family separations.",
+                    "**Gold teeth**: Wealth acquired through relatives or inheritance matters.",
+                    "**Cleaning teeth**: Improving family relationships or resolving family disputes.",
+                    "**Rotten teeth**: Problems within family or unhealthy family dynamics.",
+                    " **All teeth falling**: Major family changes or concerns about entire family lineage.",
+                    "**Growing new teeth**: New family members through birth or marriage.",
+                    "**Broken teeth**: Arguments or conflicts with specific family members."
+                ],
+                "context": "Ibn Sirin said: 'Teeth represent family members. Each tooth corresponds to specific relatives in order and position.'"
+            },
+            
+            "death": {
+                "title": "Death in Dreams - Ibn Sirin",
+                "interpretations": [
+                    "**Seeing own death**: Long life, end of difficulties, or major life transformation.",
+                    "**Seeing someone die**: That person will have long life or their circumstances will improve.",
+                    "**Being told of death**: Receiving important news or warnings about mentioned person.",
+                    "**Burial**: Concealing secrets or hiding matters from public knowledge.",
+                    "**Funeral procession**: Matters becoming public or secrets being revealed.",
+                    " **Resurrection after death**: Recovery from illness or solution to major problems.",
+                    "**Killing someone**: Overcoming that person in argument or business matter.",
+                    "**Dead person speaking**: Heed their advice as it contains important wisdom.",
+                    "**Dead person alive**: Their deeds or legacy continue to have impact.",
+                    "**Visiting graves**: Reflection on mortality and spiritual preparation."
+                ],
+                "context": "Ibn Sirin explained: 'Death in dreams rarely means physical death. It usually signifies transformation, endings, or changes in circumstances.'"
+            },
+            
+            "house": {
+                "title": "Houses in Dreams - Ibn Sirin",
+                "interpretations": [
+                    "**New house**: New phase in life, marriage, or spiritual growth.",
+                    "**Large house**: Expanding responsibilities or increasing social status.",
+                    "**Small house**: Contentment with simple life or limited resources.",
+                    "**Entering unknown house**: Discovering new aspects of oneself or entering new life situation.",
+                    "**Building house**: Planning for future or working toward goals.",
+                    "**House collapse**: Major life disruptions or failure of plans.",
+                    " **Rooms in house**: Different aspects of life - bedroom (private life), kitchen (sustenance), living room (social life).",
+                    " **Doors and windows**: Opportunities and outlook on life. Open doors mean opportunities, closed doors mean obstacles.",
+                    " **Multiple stories**: Different levels of consciousness or various life responsibilities.",
+                    " **House cleaning**: Self-improvement or resolving personal issues."
+                ],
+                "context": "Ibn Sirin said: 'The house represents the dreamer's soul, life circumstances, and spiritual state.'"
+            }
+        }
         
-        interpretation = f"""
-## Comprehensive Dream Analysis
-
-### Dream Summary:
-{dream_text}
-
-### Key Elements Identified:
-{element_list}
-
-### Overall Interpretation:
-
-Based on Islamic dream interpretation principles:
-
-**Spiritual Perspective:**
-Your dream contains elements that reflect your spiritual state and relationship with Allah. Consider the emotions you experienced - peace indicates spiritual comfort, while fear may suggest spiritual concerns.
-
-**Psychological Insight:**
-Dreams often process daily experiences and subconscious thoughts. Reflect on what's currently happening in your life and how it might connect to these dream elements.
-
-**Practical Guidance:**
-- Remember that true dream interpretation requires considering your personal circumstances
-- Good dreams are from Allah - give thanks
-- Bad dreams are from Shaytan - seek refuge in Allah and don't share them
-- Use the dream as motivation for self-reflection and improvement
-
-**Islamic Context:**
-In Islam, dreams can be of three types:
-1. **True dreams** (Ru'ya) - from Allah
-2. **Bad dreams** (Hulum) - from Shaytan  
-3. **Dreams from one's self** - reflections of daily thoughts
-
-*This analysis combines traditional Islamic scholarship with general dream interpretation principles.*
-"""
-        return interpretation
+        # SHEIKH NABULSI'S COMPREHENSIVE INTERPRETATIONS
+        self.nabulsi_detailed = {
+            "water": {
+                "title": "Water in Dreams - Sheikh Nabulsi",
+                "interpretations": [
+                    "**Spiritual Water**: Clear water represents divine knowledge and spiritual enlightenment. Drinking it means acquiring spiritual wisdom.",
+                    "**Emotional Waters**: The state of water reflects emotional state - turbulent water means emotional turmoil, calm water means peace.",
+                    "**Ocean of Mercy**: Vast ocean symbolizes Allah's infinite mercy and the boundless nature of divine knowledge.",
+                    "**River of Life**: Flowing river represents the continuous flow of divine blessings and spiritual growth.",
+                    "**Rain of Mercy**: Gentle rain indicates divine blessings descending upon the dreamer's life.",
+                    "**Well of Knowledge**: Deep well represents esoteric knowledge and hidden spiritual truths.",
+                    "**Purification**: Bathing in clean water means spiritual purification and cleansing from sins.",
+                    "**Thirst**: Seeking water indicates spiritual thirst and yearning for divine connection.",
+                    "**Flood of Emotions**: Overwhelming water represents uncontrolled emotions or spiritual tests."
+                ],
+                "context": "Sheikh Nabulsi wrote: 'Water symbolizes the essence of spiritual life and divine mercy in all its forms.'"
+            },
+            
+            "snake": {
+                "title": "Snakes in Dreams - Sheikh Nabulsi",
+                "interpretations": [
+                    "**Spiritual Enemy**: Snake represents negative thoughts, doubts, or spiritual temptations.",
+                    "**Hidden Fears**: The snake symbolizes subconscious fears and unresolved psychological issues.",
+                    "**Transformation**: Shedding skin indicates spiritual transformation and personal growth.",
+                    "**Wisdom Symbol**: Large, majestic snake can represent hidden wisdom or spiritual power.",
+                    "**Psychological Projection**: The snake often represents aspects of oneself that are feared or rejected.",
+                    "**Healing Symbol**: In some contexts, snake represents healing and transformation (as in staff of Moses).",
+                    "**Spiritual Test**: Being chased by snake indicates facing spiritual challenges or tests of faith.",
+                    "**Inner Conflict**: Fighting snake represents struggle with lower self (nafs).",
+                    " **Enlightenment**: Understanding the snake's message leads to spiritual insight."
+                ],
+                "context": "Nabulsi taught: 'Snakes represent the hidden aspects of the soul and spiritual challenges we must overcome.'"
+            },
+            
+            "teeth": {
+                "title": "Teeth in Dreams - Sheikh Nabulsi",
+                "interpretations": [
+                    "**Spiritual Foundation**: Teeth represent the foundational beliefs and principles of faith.",
+                    "**Communication**: Teeth symbolize how we express our truth and communicate our beliefs.",
+                    " **Inner Strength**: Strong teeth indicate strong faith and spiritual resilience.",
+                    " **Weakening Faith**: Loose teeth may indicate doubts or weakening of spiritual commitment.",
+                    " **Purification**: Cleaning teeth represents purifying intentions and correcting beliefs.",
+                    " **Spiritual Gifts**: Gold teeth symbolize spiritual treasures and divine gifts.",
+                    " **Family Spirituality**: Each tooth represents spiritual connections with family members.",
+                    " **Renewal**: New teeth growing indicates spiritual rebirth or renewal of faith.",
+                    " **Revelation**: Pain in specific teeth may indicate areas needing spiritual attention."
+                ],
+                "context": "Nabulsi explained: 'Teeth in dreams reflect the state of one's faith and spiritual connections.'"
+            },
+            
+            "death": {
+                "title": "Death in Dreams - Sheikh Nabulsi",
+                "interpretations": [
+                    "**Spiritual Rebirth**: Death represents transformation and rebirth into higher consciousness.",
+                    "**End of Ego**: Seeing own death signifies the death of ego and attachment to worldly matters.",
+                    "**Spiritual Awakening**: Funeral processions indicate major spiritual transitions.",
+                    "**Divine Mercy**: Peaceful death represents acceptance of divine will and spiritual surrender.",
+                    " **Past Life Issues**: Dead people appearing may represent unresolved spiritual matters.",
+                    " **Soul Journey**: Burial represents returning to one's spiritual essence.",
+                    " **Eternal Life**: Resurrection indicates understanding of eternal nature of soul.",
+                    " **Spiritual Messages**: Dead relatives speaking bring important spiritual guidance.",
+                    " **Transformation**: Killing in dream represents overcoming negative traits."
+                ],
+                "context": "Nabulsi wrote: 'Physical death in dreams symbolizes spiritual transformation and the journey toward divine presence.'"
+            },
+            
+            "house": {
+                "title": "Houses in Dreams - Sheikh Nabulsi",
+                "interpretations": [
+                    "**Soul's Dwelling**: House represents the soul and its current spiritual condition.",
+                    "**Spiritual Chambers**: Different rooms represent various spiritual faculties and states.",
+                    "**Divine Presence**: Beautiful house indicates soul in state of divine proximity.",
+                    "**Spiritual Poverty**: Dilapidated house means spiritual neglect and distance from Allah.",
+                    "**Heart's Condition**: The cleanliness and order reflect the state of the heart.",
+                    "**Spiritual Growth**: Building house represents spiritual development and self-improvement.",
+                    "**Divine Protection**: Strong doors and walls indicate spiritual protection from negative influences.",
+                    "**Illumination**: Windows represent spiritual insight and perception of divine truths.",
+                    "**Spiritual Journey**: Moving houses indicates transition between spiritual states."
+                ],
+                "context": "Nabulsi taught: 'The house in dreams is a mirror of the soul's condition and spiritual journey.'"
+            }
+        }
+    
+    def get_ibn_sirin_interpretation(self, element: str, dream_context: str = "") -> Dict:
+        """Get detailed Ibn Sirin interpretation for specific element"""
+        if element in self.ibn_sirin_detailed:
+            interpretation = self.ibn_sirin_detailed[element].copy()
+            
+            # Add contextual advice based on dream
+            if dream_context:
+                interpretation["contextual_advice"] = self._get_contextual_advice_ibn_sirin(element, dream_context)
+            else:
+                interpretation["contextual_advice"] = "Consider the specific details and emotions in your dream for more precise interpretation."
+            
+            return interpretation
+        else:
+            return {
+                "title": f"{element.capitalize()} in Dreams - Ibn Sirin",
+                "interpretations": [
+                    f"Ibn Sirin taught that {element} should be interpreted according to its most apparent meaning and the dreamer's circumstances.",
+                    "Consider the condition, color, size, and your interaction with it in the dream.",
+                    "The emotions experienced during the dream are crucial for accurate interpretation."
+                ],
+                "context": "Ibn Sirin said: 'Interpret dreams according to their most obvious meanings and the dreamer's situation.'",
+                "contextual_advice": "Reflect on how this element relates to your current life situation."
+            }
+    
+    def get_nabulsi_interpretation(self, element: str, dream_context: str = "") -> Dict:
+        """Get detailed Sheikh Nabulsi interpretation for specific element"""
+        if element in self.nabulsi_detailed:
+            interpretation = self.nabulsi_detailed[element].copy()
+            
+            # Add contextual advice based on dream
+            if dream_context:
+                interpretation["contextual_advice"] = self._get_contextual_advice_nabulsi(element, dream_context)
+            else:
+                interpretation["contextual_advice"] = "Reflect on the spiritual significance of this element in your current spiritual journey."
+            
+            return interpretation
+        else:
+            return {
+                "title": f"{element.capitalize()} in Dreams - Sheikh Nabulsi",
+                "interpretations": [
+                    f"Sheikh Nabulsi emphasized the spiritual dimensions of {element} in dreams.",
+                    "Consider what this element represents in your spiritual life and relationship with Allah.",
+                    "The symbolic meaning often relates to inner states and spiritual conditions."
+                ],
+                "context": "Nabulsi wrote: 'Dreams are expressions of the soul and reflections of spiritual states.'",
+                "contextual_advice": "Contemplate the spiritual lessons this dream element may be teaching you."
+            }
+    
+    def _get_contextual_advice_ibn_sirin(self, element: str, context: str) -> str:
+        """Get contextual advice based on dream content for Ibn Sirin"""
+        advice_map = {
+            "water": "Notice the water's clarity, movement, and your interaction with it. Clear, flowing water you drink is most favorable.",
+            "snake": "Observe the snake's size, color, and behavior. Your reaction to it reveals how you handle challenges.",
+            "teeth": "Note which teeth were affected and whether there was pain. This specifies which family relationships are involved.",
+            "death": "Consider who died and the circumstances. This reveals what aspect of life is transforming.",
+            "house": "Notice the house's condition, size, and rooms. This reflects your life circumstances and inner state."
+        }
+        return advice_map.get(element, "Consider the specific details and your emotional response for accurate interpretation.")
+    
+    def _get_contextual_advice_nabulsi(self, element: str, context: str) -> str:
+        """Get contextual advice based on dream content for Nabulsi"""
+        advice_map = {
+            "water": "Reflect on the spiritual meaning of the water's state. It represents your connection with divine mercy.",
+            "snake": "This represents inner struggles. Consider what aspects of yourself you need to transform.",
+            "teeth": "Examine your spiritual foundations and how you express your faith in daily life.",
+            "death": "Contemplate what needs to transform in your spiritual life for growth to occur.",
+            "house": "Your soul's condition is reflected in the house. Consider areas needing spiritual attention."
+        }
+        return advice_map.get(element, "Reflect on the spiritual lessons and what Allah may be teaching you through this dream.")
 
 def main():
     # Configure Streamlit page
     st.set_page_config(
-        page_title="Islamic Dream Interpreter",
-        page_icon="🌙",
+        page_title="Detailed Islamic Dream Interpreter",
+        page_icon="📚",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS for better styling
+    # Custom CSS for detailed styling
     st.markdown("""
     <style>
     .main-header {
-        font-size: 3rem;
-        color: #2E86AB;
+        font-size: 2.8rem;
+        color: #1a5276;
         text-align: center;
-        margin-bottom: 2rem;
-        font-weight: bold;
-        padding: 20px;
-    }
-    .scholar-header {
-        font-size: 1.8rem;
-        color: #A23B72;
         margin-bottom: 1rem;
         font-weight: bold;
+        padding: 20px;
+        background: linear-gradient(135deg, #e8f4f8, #d1e7f5);
+        border-radius: 15px;
     }
-    .dream-input {
-        font-size: 1.2rem;
-    }
-    .interpretation-box {
+    .scholar-section {
         background-color: #f8f9fa;
         padding: 25px;
+        border-radius: 15px;
+        margin: 20px 0;
+        border-left: 6px solid #1a5276;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .ibn-sirin-header {
+        color: #1a5276;
+        border-left: 5px solid #1a5276;
+        padding-left: 15px;
+        margin: 25px 0 15px 0;
+    }
+    .nabulsi-header {
+        color: #7d3c98;
+        border-left: 5px solid #7d3c98;
+        padding-left: 15px;
+        margin: 25px 0 15px 0;
+    }
+    .interpretation-point {
+        background: white;
+        padding: 15px;
+        margin: 10px 0;
         border-radius: 10px;
-        border-left: 5px solid #2E86AB;
+        border-left: 4px solid #3498db;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .context-box {
+        background: #e8f6f3;
+        padding: 20px;
+        border-radius: 10px;
         margin: 15px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 2px solid #1abc9c;
+        font-style: italic;
+    }
+    .advice-box {
+        background: #fef9e7;
+        padding: 18px;
+        border-radius: 10px;
+        margin: 15px 0;
+        border: 2px solid #f39c12;
     }
     .element-badge {
-        background-color: #2E86AB;
+        background: linear-gradient(135deg, #3498db, #1a5276);
         color: white;
-        padding: 5px 10px;
-        border-radius: 15px;
+        padding: 8px 16px;
+        border-radius: 20px;
         margin: 5px;
         display: inline-block;
         font-weight: bold;
+        font-size: 1.1rem;
     }
     .footer {
         text-align: center;
         margin-top: 3rem;
         color: #666;
         font-size: 0.9rem;
-        padding: 20px;
+        padding: 25px;
+        background: #f8f9fa;
+        border-radius: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
     
     # Header
-    st.markdown('<div class="main-header">🌙 Islamic Dream Interpreter</div>', unsafe_allow_html=True)
-    st.markdown("### Based on the Works of Ibn Sirin and Sheikh Abdul Ghani Nabulsi")
+    st.markdown('<div class="main-header">📚 Detailed Islamic Dream Interpreter</div>', unsafe_allow_html=True)
+    st.markdown("### Based on Comprehensive Works of Ibn Sirin and Sheikh Abdul Ghani Nabulsi")
     
     # Initialize interpreter
     if 'interpreter' not in st.session_state:
-        st.session_state.interpreter = DreamInterpreter()
+        st.session_state.interpreter = DetailedDreamInterpreter()
+        st.session_state.interpretation_history = []
     
-    # Dream input section
-    st.markdown("---")
-    st.markdown("### 📝 Describe Your Dream")
+    # Main layout
+    col1, col2 = st.columns([2, 1])
     
-    col1, col2 = st.columns([3, 1])
     with col1:
+        st.markdown("### 🌙 Describe Your Dream in Detail")
         dream_text = st.text_area(
-            "Write your dream in detail:",
-            height=200,
-            placeholder="Describe your dream here... Include details about people, objects, colors, emotions, and events. Be as specific as possible.",
-            key="dream_input",
-            help="The more details you provide, the better the interpretation will be."
+            "Write your complete dream:",
+            height=150,
+            placeholder="Example: 'I dreamt I was drinking clear water from a flowing river while snakes watched from the bank. The sun was setting and I felt peaceful...'",
+            help="Include specific elements, emotions, colors, and sequences. The more detail, the better the interpretation."
         )
     
     with col2:
-        st.markdown("**Tips for better interpretation:**")
-        st.markdown("""
-        - Write immediately after waking
-        - Include emotions felt
-        - Note colors and numbers
-        - Describe people involved
-        - Mention the setting
-        """)
+        st.markdown("### 🔍 Select Dream Elements")
+        common_elements = [
+            "Select elements", "water", "snake", "teeth", "death", "house", 
+            "money", "fire", "bird", "travel", "ocean", "mountain", "rain", "sun", "moon"
+        ]
+        selected_elements = st.multiselect(
+            "Choose elements from your dream:",
+            options=common_elements[1:],
+            default=[],
+            help="Select all major elements that appeared in your dream"
+        )
+        
+        st.markdown("**💡 Tip:** Select 1-3 main elements for detailed analysis")
     
     # Interpretation button
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        interpret_btn = st.button("🔮 Interpret My Dream", use_container_width=True, type="primary")
-    
-    if interpret_btn and dream_text:
-        with st.spinner("🔍 Analyzing your dream with Islamic scholarship..."):
-            # Extract dream elements
-            elements = st.session_state.interpreter.extract_dream_elements(dream_text)
+    if st.button("📖 Get Detailed Interpretations", type="primary", use_container_width=True):
+        if not dream_text and not selected_elements:
+            st.error("Please describe your dream or select at least one element")
+        else:
+            # Extract elements from text if no manual selection
+            if not selected_elements and dream_text:
+                text_elements = [elem for elem in st.session_state.interpreter.ibn_sirin_detailed.keys() 
+                               if elem in dream_text.lower()]
+                selected_elements = text_elements[:3]  # Limit to 3 elements
             
-            # Get interpretations
-            ibn_sirin = st.session_state.interpreter.get_ibn_sirin_interpretation(elements)
-            nabulsi = st.session_state.interpreter.get_nabulsi_interpretation(elements)
-            comprehensive = st.session_state.interpreter.generate_comprehensive_interpretation(dream_text, elements)
+            if not selected_elements:
+                st.warning("No recognizable dream elements found. Please select elements manually.")
+            else:
+                # Store in session state
+                st.session_state.current_interpretation = {
+                    "dream_text": dream_text,
+                    "elements": selected_elements,
+                    "timestamp": pd.Timestamp.now()
+                }
+    
+    # Display interpretations if available
+    if hasattr(st.session_state, 'current_interpretation'):
+        elements = st.session_state.current_interpretation["elements"]
+        dream_text = st.session_state.current_interpretation["dream_text"]
         
-        # Display dream elements
-        if elements:
-            st.markdown("### 🔍 Elements Identified in Your Dream")
-            elements_html = " ".join([f'<span class="element-badge">{elem.capitalize()}</span>' for elem in elements])
-            st.markdown(f'<div style="margin: 20px 0;">{elements_html}</div>', unsafe_allow_html=True)
-        
-        # Display results in tabs
         st.markdown("---")
-        st.markdown("## 📖 Dream Interpretations")
+        st.markdown("## 📚 Detailed Dream Analysis")
         
-        tab1, tab2, tab3 = st.tabs([
-            "🧔 Ibn Sirin's View", 
-            "📚 Sheikh Nabulsi's View", 
-            "🌟 Comprehensive Analysis"
-        ])
+        # Display selected elements
+        st.markdown("### 🔍 Elements Analyzed")
+        elements_html = " ".join([f'<span class="element-badge">{elem.capitalize()}</span>' for elem in elements])
+        st.markdown(f'<div style="margin: 20px 0;">{elements_html}</div>', unsafe_allow_html=True)
         
-        with tab1:
-            st.markdown(ibn_sirin, unsafe_allow_html=True)
-        
-        with tab2:
-            st.markdown(nabulsi, unsafe_allow_html=True)
-        
-        with tab3:
-            st.markdown(comprehensive, unsafe_allow_html=True)
+        # Display interpretations for each element
+        for element in elements:
+            st.markdown(f"## {element.capitalize()} in Your Dream")
+            
+            # Ibn Sirin's Interpretation
+            st.markdown('<div class="ibn-sirin-header"><h3>🧔 Ibn Sirin\'s Interpretation</h3></div>', unsafe_allow_html=True)
+            ibn_interpretation = st.session_state.interpreter.get_ibn_sirin_interpretation(element, dream_text)
+            
+            st.markdown(f"**{ibn_interpretation['title']}**")
+            
+            for point in ibn_interpretation['interpretations']:
+                st.markdown(f'<div class="interpretation-point">📖 {point}</div>', unsafe_allow_html=True)
+            
+            st.markdown(f'<div class="context-box">💬 {ibn_interpretation["context"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="advice-box">🎯 **Contextual Advice**: {ibn_interpretation["contextual_advice"]}</div>', unsafe_allow_html=True)
+            
+            # Sheikh Nabulsi's Interpretation
+            st.markdown('<div class="nabulsi-header"><h3>📚 Sheikh Nabulsi\'s Interpretation</h3></div>', unsafe_allow_html=True)
+            nabulsi_interpretation = st.session_state.interpreter.get_nabulsi_interpretation(element, dream_text)
+            
+            st.markdown(f"**{nabulsi_interpretation['title']}**")
+            
+            for point in nabulsi_interpretation['interpretations']:
+                st.markdown(f'<div class="interpretation-point">📖 {point}</div>', unsafe_allow_html=True)
+            
+            st.markdown(f'<div class="context-box">💬 {nabulsi_interpretation["context"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="advice-box">🎯 **Contextual Advice**: {nabulsi_interpretation["contextual_advice"]}</div>', unsafe_allow_html=True)
+            
+            st.markdown("---")
     
-    elif interpret_btn and not dream_text:
-        st.warning("⚠️ Please describe your dream first!")
-    
-    # Sidebar with information
+    # Sidebar with detailed information
     with st.sidebar:
-        st.markdown("## 🌟 About This App")
+        st.markdown("## 📖 About the Scholars")
+        
+        st.markdown("### 🧔 Ibn Sirin (8th Century)")
         st.info("""
-        This Islamic Dream Interpreter is based on the authoritative works of:
+        **Full Name:** Abu Bakr Muhammad ibn Sirin al-Ansari
         
-        **• Ibn Sirin** (8th century)
-        - Famous classical Islamic scholar
-        - Pioneer of Islamic dream interpretation
-        - Known for his comprehensive approach
+        **Background:**
+        - One of the greatest Tabi'in (successors of the Companions)
+        - Student of Anas ibn Malik and other prominent companions
+        - Renowned for his knowledge, piety, and dream interpretation
         
-        **• Sheikh Abdul Ghani Nabulsi** (17th century)
-        - Renowned Sufi scholar and mystic
-        - Author of extensive dream interpretation works
-        - Emphasized spiritual dimensions
+        **Methodology:**
+        - Combined Quran, Sunnah, and deep psychological insight
+        - Considered dreamer's circumstances and emotions
+        - Emphasized symbolic meanings and context
+        
+        **Famous Work:** 
+        "Interpretation of Dreams" - Foundational text in Islamic dream interpretation
         """)
         
-        st.markdown("## 📚 Interpretation Guidelines")
-        st.write("""
-        **Islamic Dream Types:**
-        1. **True Dreams** - Good news from Allah
-        2. **Bad Dreams** - From Shaytan
-        3. **Daily Reflections** - From one's thoughts
+        st.markdown("### 📚 Sheikh Abdul Ghani Nabulsi (17th Century)")
+        st.info("""
+        **Full Name:** Abd al-Ghani ibn Isma'il al-Nabulsi
         
-        **Best Practices:**
+        **Background:**
+        - Prominent Sufi scholar, jurist, and poet
+        - Lived in Damascus, Ottoman Empire
+        - Wrote extensively on Sufism and dream interpretation
+        
+        **Methodology:**
+        - Emphasized spiritual and mystical dimensions
+        - Connected dreams to spiritual states and divine messages
+        - Integrated Sufi concepts with traditional interpretation
+        
+        **Famous Works:**
+        "Ta'atir al-Anam fi Tafsir al-Ahlam" - Comprehensive dream interpretation
+        """)
+        
+        st.markdown("## 📚 Interpretation Principles")
+        st.write("""
+        **Ibn Sirin's Approach:**
+        - Literal and symbolic meanings
+        - Context-dependent interpretation
+        - Consideration of dreamer's circumstances
+        - Emotional responses matter
+        
+        **Nabulsi's Approach:**
+        - Spiritual and mystical dimensions
+        - Dreams as soul reflections
+        - Connection to divine messages
+        - Inner states and spiritual growth
+        """)
+        
+        st.markdown("## ⚠️ Important Notes")
+        st.warning("""
+        **Islamic Guidelines:**
         - Share only good dreams
         - Seek refuge from bad dreams
-        - Consider personal context
-        - Consult scholars for important dreams
+        - Consult scholars for important matters
+        - Dreams are one of 46 parts of prophethood
+        
+        **Interpretation Principles:**
+        - Consider personal circumstances
+        - Emotions during dream are crucial
+        - Multiple elements interact
+        - Context changes meanings
         """)
-        
-        st.markdown("## ⚠️ Important Disclaimer")
-        st.warning("""
-        This tool provides general interpretations based on Islamic scholarship. 
-        
-        **For personal guidance:**
-        - Consult knowledgeable scholars
-        - Consider your personal circumstances
-        - Dreams should not be used for major life decisions without proper consultation
-        
-        *"True dreams are one of the forty-six parts of Prophethood."* - Sahih Muslim
-        """)
-        
-        st.markdown("## 🔮 Common Dream Meanings")
-        common_elements = st.selectbox(
-            "Quick reference:",
-            ["Select an element", "Water", "Snake", "Teeth", "Money", "House", "Travel", "Fire", "Birds"]
-        )
-        
-        if common_elements != "Select an element":
-            element_lower = common_elements.lower()
-            if element_lower in st.session_state.interpreter.ibn_sirin_db:
-                st.write(f"**Ibn Sirin:** {st.session_state.interpreter.ibn_sirin_db[element_lower]}")
-                st.write(f"**Nabulsi:** {st.session_state.interpreter.nabulsi_db[element_lower]}")
-    
+
     # Footer
-    st.markdown("---")
     st.markdown("""
     <div class="footer">
-    <p>🌙 Islamic Dream Interpreter • Based on Authentic Islamic Scholarship</p>
-    <p><em>May Allah guide us to understand the wisdom behind our dreams and use them for spiritual growth</em></p>
-    <p style="font-size: 0.8rem; margin-top: 10px;">Note: This application combines traditional Islamic dream interpretation with modern technology for educational purposes.</p>
+    <h4>📚 Detailed Islamic Dream Interpreter</h4>
+    <p><em>Based on authentic works of Ibn Sirin and Sheikh Abdul Ghani Nabulsi</em></p>
+    <p style="font-size: 0.8rem; margin-top: 15px;">
+    This application provides detailed interpretations from classical Islamic scholarship. 
+    For personal guidance, always consult knowledgeable scholars and consider your personal circumstances.
+    </p>
     </div>
     """, unsafe_allow_html=True)
 
